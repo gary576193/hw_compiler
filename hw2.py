@@ -1,5 +1,8 @@
 import ply.lex as lex
 import ply.yacc as yacc
+import networkx as nx 
+from networkx.drawing.nx_agraph import graphviz_layout
+import matplotlib.pyplot as plt
 
 reserved = {
     'if' : 'IF',
@@ -30,6 +33,8 @@ t_LRGEQ   = r'\>\='
 t_SMLEQ   = r'\<\='
 
 
+
+
 def t_NAME(t):
 
     r'[a-zA-Z_][a-zA-Z_0-9]*'
@@ -54,7 +59,6 @@ def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
-lexer = lex.lex()
 
 precedence = (
     ('left', 'PLUS', 'MINUS'),
@@ -179,10 +183,122 @@ def p_error(p):
 
 yacc.yacc()
 
+def find_top_prio(lst): 
+    prio_dict = {'-':1,'+':2,'*':3,'/':4}
+    top_prio = 1 
+    count_ops = 0 
+    for ops in lst: 
+        if ops in prio_dict: 
+            count_ops += 1 
+            if prio_dict[ops] > 1: 
+                top_prio = prio_dict[ops] 
+    return top_prio, count_ops
+
+def TAC():
+    ip_str = s
+    ip_lst = list(map(str,ip_str)) 
+    prio_dict = {'-':1,'+':2,'*':3,'/':4,'**':5,'^':6}
+    op_lst = [] 
+    op_lst.append(['op','arg1','arg2','result'])
+    top_prio, count_ops = find_top_prio(ip_lst) 
+    ip = ip_lst 
+    i, res = 0, 0
+    G = nx.DiGraph()
+    G.clear()
+    data = op_lst
+    while i in range(len(ip)): 
+        if ip[i] in prio_dict: 
+            op = ip[i] 
+            if (prio_dict[op]>=top_prio) and (ip[i+1] in prio_dict): 
+                res += 1 
+                op_lst.append([ip[i+1],ip[i+2],' ','t'+str(res)]) 
+                ip[i+1] = 't'+str(res) 
+                ip.pop(i+2) 
+                i = 0 
+                top_prio, count_ops = find_top_prio(ip) 
+            elif prio_dict[op]>=top_prio: 
+                res += 1 
+                op_lst.append([op,ip[i-1],ip[i+1],'t'+str(res)]) 
+                ip[i] = 't'+str(res) 
+                ip.pop(i-1) 
+                ip.pop(i) 
+                i = 0 
+                top_prio, count_ops = find_top_prio(ip) 
+        if len(ip) == 1: 
+            op_lst.append(['=',ip[i],' ','a'])
+            
+        i += 1
+    for i in range(0,len(op_lst)):
+        print(op_lst[i])
+
 while True:
     try:
         s = input('calc > ')
+        if s=='close':
+            break
+        TAC()
+        lexer = lex.lex()
+        lexer.input(s)
+        while True:
+            tok = lexer.token()
+            if not tok:
+                break
+            print(tok)
+        ip_lst = list(map(str,s))
     except EOFError:
         break
     yacc.parse(s)
     print(names)
+    
+    prio_dict = {'-':1,'+':2,'*':3,'/':4,'**':5,'^':6}
+    op_lst = []
+    op_lst.append(['op','arg1','arg2','result'])
+
+    top_prio, count_ops = find_top_prio(ip_lst)
+    ip = ip_lst
+    i, res = 0, 0
+    while i in range(len(ip)):
+      if ip[i] in prio_dict:
+        op = ip[i]
+        if (prio_dict[op]>=top_prio) and (ip[i+1] in prio_dict):
+            res += 1
+            op_lst.append([ip[i+1],ip[i+2],' ','t'+str(res)])
+            ip[i+1] = 't'+str(res)
+            ip.pop(i+2)
+            i = 0
+            top_prio, count_ops = find_top_prio(ip)
+        elif prio_dict[op]>=top_prio:
+            res += 1
+            op_lst.append([op,ip[i-1],ip[i+1],'t'+str(res)])
+            ip[i] = 't'+str(res)
+            ip.pop(i-1)
+            ip.pop(i)
+            i = 0
+            top_prio, count_ops = find_top_prio(ip)
+      if len(ip) == 1:
+        op_lst.append(['=',ip[i],' ','a'])
+
+        G = nx.DiGraph()
+        G.clear()
+        data = op_lst
+        for i in range(1,len(data)-1):
+          if(data[i][1]==data[i][2]):
+            data[i][1] = "L_" + data[i][1]
+            data[i][2] = "R_" + data[i][2]
+
+          G.add_node("%s" %(data[i][1]))
+          G.add_node("%s" %(data[i][2]))
+          G.add_node("%s" %(data[i][3]))
+
+          G.add_edge("%s" %(data[i][3]), "%s" %(data[i][1]))
+          G.add_edge("%s" %(data[i][3]), "%s" %(data[i][2]))
+        
+        nx.nx_agraph.write_dot(G,'test.dot')
+        plt.title('draw_networkx')
+        pos = graphviz_layout(G, prog='dot')
+        nx.draw(G, pos, with_labels=True, arrows=False, node_size=600)
+
+        plt.savefig('nx_test.png')
+        plt.clf()
+
+      i += 1
