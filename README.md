@@ -1,7 +1,7 @@
 # hw_compiler
 
-```wdiff
-- 欲執行程式請輸入：python hw.py
+```diff
+ 欲執行程式請輸入：python hw.py
 ```
 
 # 執行方式:
