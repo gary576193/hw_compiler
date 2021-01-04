@@ -251,9 +251,10 @@ def TAC():
             pos = graphviz_layout(G, prog='dot')
             nx.draw(G, pos, with_labels=True, arrows=False, node_size=600)
 
-            plt.savefig('nx_test.png')
+            plt.show()
             plt.clf()
-
+            plt.cla()
+        
         i+=1
     for i in range(len(op_lst)):
         print(op_lst[i])
