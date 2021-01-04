@@ -1,7 +1,7 @@
 # hw_compiler
 
-```diff
- 欲執行程式請輸入：python hw.py
+```
+-> 欲執行程式請輸入：python hw.py
 ```
 
 # 執行方式:
